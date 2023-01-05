@@ -14,11 +14,13 @@ const api = new ChatGPTAPIBrowser({
 var lastResult = null;
 
 app.get('/init', async (req, res) => {
+  console.log("On Init");
   await api.initSession();
   res.send("Initalized");
 })
 
 app.get('/prompt', async (req, res) => {
+  console.log("On Prompt : " + req.query.prompt);
   var result = null;
   if (lastResult) {
       result = await api.sendMessage( req.query.prompt ,  {
@@ -34,6 +36,7 @@ app.get('/prompt', async (req, res) => {
 })
 
 app.get('/close', async (req, res) => {
+    console.log("On Close");
   await api.closeSession();
   res.send("Closed");
 })
