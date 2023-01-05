@@ -2,7 +2,7 @@ require('dotenv').config();
 import { ChatGPTAPIBrowser } from 'chatgpt'
 const express = require('express')
 const app = express()
-const port = 3000
+const port = 80
 
 // use puppeteer to bypass cloudflare (headful because of captchas)
 const api = new ChatGPTAPIBrowser({
