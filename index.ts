@@ -19,8 +19,17 @@ app.get('/init', async (req, res) => {
   res.send("Initalized");
 })
 
+app.get('/setup', async (req, res) => {
+  console.log("On Setup : " + req.query.prompt);
+  api.sendMessage( req.query.prompt ).then( response => {
+    lastResult = response;
+  } );
+
+  res.send("Setup started");
+})
+
 app.get('/prompt', async (req, res) => {
-  console.log("On Prompt : " + req.query.prompt);
+  console.log("User Prompt : " + req.query.prompt);
   var result = null;
   if (lastResult) {
       result = await api.sendMessage( req.query.prompt ,  {
@@ -32,17 +41,20 @@ app.get('/prompt', async (req, res) => {
   }
 
   lastResult = result;
+  console.log("ChatGPT Response : " + result.response);
   res.send(result.response)
 })
 
 app.get('/close', async (req, res) => {
-    console.log("On Close");
+  console.log("On Close");
   await api.closeSession();
+  lastResult = null;
   res.send("Closed");
 })
 
 
-app.listen(port, () => {
+app.listen(port, async () => {
+  await api.initSession();
   console.log(`Chat GPT listening on ${port}`)
 })
 
