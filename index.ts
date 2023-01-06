@@ -12,6 +12,7 @@ const api = new ChatGPTAPIBrowser({
 })
 
 var lastResult = null;
+var inProgress = false;
 
 app.get('/init', async (req, res) => {
   console.log("On Init");
@@ -20,29 +21,51 @@ app.get('/init', async (req, res) => {
 })
 
 app.get('/setup', async (req, res) => {
-  console.log("On Setup : " + req.query.prompt);
-  api.sendMessage( req.query.prompt ).then( response => {
-    lastResult = response;
-  } );
-
-  res.send("Setup started");
-})
-
-app.get('/prompt', async (req, res) => {
-  console.log("User Prompt : " + req.query.prompt);
-  var result = null;
-  if (lastResult) {
-      result = await api.sendMessage( req.query.prompt ,  {
-        conversationId: lastResult.conversationId,
-        parentMessageId: lastResult.messageId
-    });
-  } else {
-      result = await api.sendMessage( req.query.prompt );
+  let prompt = req.query.prompt + "Please keep the response to one sentence.";
+  console.log("On Setup : " + prompt);
+  try {
+      lastResult = await api.sendMessage( prompt );
+    } catch(error){
+      console.log("Did not setup");
   }
 
+  console.log("Setup finished");
+  res.send("Setup started");
+});
+
+app.get('/prompt', async (req, res) => {
+  if (inProgress) {
+    console.log ("Ignoring prompt due to ongoing request : " + req.query.prompt )
+    res.send(""); //because of rate limiting, we can only handle one process at a time
+    return;
+  }
+
+  inProgress = true;
+
+  let prompt = req.query.prompt + ". Please keep the response to one sentence.";
+  console.log("User Prompt : " + prompt);
+  var result = null;
+  try {
+    if (lastResult) {
+      result = await api.sendMessage( prompt ,  {
+        conversationId: lastResult.conversationId,
+        parentMessageId: lastResult.messageId
+      });
+    } else {
+        result = await api.sendMessage( prompt );
+    }
+  } catch (error) {
+      console.log(error);
+      return new Promise(resolve => setTimeout(resolve, 1000)); //api throttling
+      res.send("Sorry, the API is rate limited. Please try again.");
+      return;
+  }
+
+
   lastResult = result;
+  inProgress = false;
   console.log("ChatGPT Response : " + result.response);
-  res.send(result.response)
+  res.send(result.response);
 })
 
 app.get('/close', async (req, res) => {
